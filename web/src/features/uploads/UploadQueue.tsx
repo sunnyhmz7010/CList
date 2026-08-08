@@ -2,6 +2,7 @@ import {useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {apiClient} from '../../api/client'
+import {recoveryStorageKey} from '../auth/GuestRecovery'
 
 const chunkSize = 8 * 1024 * 1024
 interface UploadState { id: string; missing_chunks: number[] }
@@ -12,6 +13,10 @@ export function UploadQueue() {
   const queryClient = useQueryClient()
 
   async function upload(file: File) {
+    if (!localStorage.getItem(recoveryStorageKey)) {
+      const created = await apiClient<{recovery_key: string}>('/api/v1/vault', {method: 'POST'})
+      localStorage.setItem(recoveryStorageKey, created.recovery_key)
+    }
     setMessage('正在准备上传')
     const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize))
     const upload = await apiClient<UploadState>('/api/v1/uploads', {

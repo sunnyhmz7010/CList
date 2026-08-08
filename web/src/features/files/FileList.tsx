@@ -1,6 +1,7 @@
 import {useQuery} from '@tanstack/react-query'
 
 import {apiClient} from '../../api/client'
+import {FileAccessDialog} from './FileAccessDialog'
 
 interface APIFile { public_id: string; file_name: string; size: number; mime_type: string }
 export interface FileSummary { publicId: string; fileName: string; size: number; mimeType?: string }
@@ -15,6 +16,7 @@ export function FileList({files}: {files?: FileSummary[]}) {
       <a href={`/f/${file.publicId}/${encodeURIComponent(file.fileName)}`}>{file.fileName}</a>
       <span>{formatSize(file.size)}</span>
       <progress max="100" value="0" aria-label={`${file.fileName} 上传进度`} />
+      <FileAccessDialog publicId={file.publicId} />
     </li>)}</ul>
   </section>
 }
