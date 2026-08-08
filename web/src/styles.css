@@ -13,4 +13,12 @@ button, input { font: inherit; }
 .capability { display: inline-block; padding: .2rem .45rem; border-radius: .3rem; font-size: .875rem; }
 .capability-ok { color: #155b36; background: #def7e9; }
 .capability-warning { color: #7a3f00; background: #fff0cf; }
+.gallery-page { padding: 1.5rem; }
+.gallery-filters { display: flex; flex-wrap: wrap; gap: 1rem; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 1rem; list-style: none; padding: 0; }
+.gallery-grid li { display: grid; gap: .5rem; padding: 1rem; background: #fff; border: 1px solid #dce3ec; }
+.preview-panel { position: fixed; inset: 5vh 5vw; overflow: auto; padding: 1rem; background: #fff; box-shadow: 0 1rem 3rem #0005; }
+.preview-media, .preview-frame { display: block; width: 100%; max-height: 75vh; object-fit: contain; }
+.preview-frame { min-height: 70vh; border: 0; }
+.preview-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 720px) { .workspace { grid-template-columns: 1fr; padding: 1rem; } .file-list li { grid-template-columns: 1fr auto; } .file-list progress { grid-column: 1 / -1; width: 100%; } }
