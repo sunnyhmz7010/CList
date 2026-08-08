@@ -9,10 +9,11 @@ import {StorageProfiles} from '../features/settings/StorageProfiles'
 import {Gallery} from '../features/gallery/Gallery'
 import {GuestGate} from '../features/auth/GuestGate'
 import {TrashPage} from '../features/trash/TrashPage'
+import {ApiTokens} from '../features/settings/ApiTokens'
 
 function HomePage() { return <main className="workspace"><FolderTree /><div><UploadQueue /><FileList /></div></main> }
 function SetupPage() { return <main><h2>初始化管理员</h2><p>请设置管理员账号和密码。</p></main> }
-function AdminPage() { return <main><h1>管理后台</h1><AccessSettings /><StorageProfiles /><HomePage /></main> }
+function AdminPage() { return <main><h1>管理后台</h1><AccessSettings /><StorageProfiles /><ApiTokens /><HomePage /></main> }
 
 export function createAppRouter() {
   return createBrowserRouter([

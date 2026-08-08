@@ -110,6 +110,7 @@ func run() error {
 	}
 	uploadService := uploads.NewService(database, filepath.Join(cfg.DataDir, "chunks"), registry, fileService)
 	guestService := auth.NewGuestService(database)
+	tokenService := auth.NewTokenService(database)
 	guestAuthenticator := auth.NewGuestAuthenticator(database, authenticator)
 	galleryService := gallery.NewService(database, fileRepo, folderRepo)
 	previewService := preview.NewService(fileService, registry)
@@ -148,6 +149,8 @@ func run() error {
 		Preview:       api.NewPreviewHandlers(previewService, filePasswordService, authenticator),
 		Trash:         api.NewTrashHandlers(trashService, purgeService),
 		Migrations:    api.NewMigrationHandlers(migrationService),
+		Tokens:        api.NewTokenHandlers(tokenService),
+		Compat:        api.NewCompatHandlers(uploadService),
 		Webhook:       webhookHandler,
 		Frontend:      handler,
 	})

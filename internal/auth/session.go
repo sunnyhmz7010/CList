@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -73,6 +74,10 @@ func (a *Authenticator) RequireAdmin(next http.Handler) http.Handler {
 
 func (a *Authenticator) RequireManager(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if actor, err := a.BearerActor(r); err == nil {
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), actorContextKey, actor)))
+			return
+		}
 		if actor, err := a.AdminActor(r); err == nil {
 			if err := a.verifyCSRF(r); err != nil {
 				writeAuthError(w, r, http.StatusForbidden, "csrf_required", "CSRF 校验失败")
@@ -92,6 +97,14 @@ func (a *Authenticator) RequireManager(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), actorContextKey, actor)))
 	})
+}
+
+func (a *Authenticator) BearerActor(r *http.Request) (Actor, error) {
+	header := r.Header.Get("Authorization")
+	if !strings.HasPrefix(header, "Bearer ") {
+		return Actor{}, ErrUnauthorized
+	}
+	return NewTokenService(a.db).Authenticate(r.Context(), strings.TrimSpace(strings.TrimPrefix(header, "Bearer ")))
 }
 
 func (a *Authenticator) VaultActor(r *http.Request) (Actor, error) {

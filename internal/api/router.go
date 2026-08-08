@@ -23,6 +23,8 @@ type RouterDeps struct {
 	Preview       *PreviewHandlers
 	Trash         *TrashHandlers
 	Migrations    *MigrationHandlers
+	Tokens        *TokenHandlers
+	Compat        *CompatHandlers
 	Webhook       http.Handler
 	Frontend      http.Handler
 }
@@ -77,6 +79,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 			protected.Delete("/files/{id}/password", deps.FileAccess.Clear)
 			protected.Post("/vault/revoke", deps.Vaults.Revoke)
 			protected.Get("/vault/files", deps.Files.List)
+			if deps.Compat != nil {
+				protected.Post("/upload", deps.Compat.Upload)
+			}
 			if deps.Migrations != nil {
 				protected.Post("/migrations", deps.Migrations.Start)
 				protected.Get("/jobs/{id}", deps.Migrations.GetJob)
@@ -88,6 +93,11 @@ func NewRouter(deps RouterDeps) http.Handler {
 			admin.Get("/storage-profiles", deps.Storage.List)
 			admin.Post("/storage-profiles", deps.Storage.Create)
 			admin.Post("/storage-profiles/{id}/default", deps.Storage.SetDefault)
+			if deps.Tokens != nil {
+				admin.Get("/tokens", deps.Tokens.List)
+				admin.Post("/tokens", deps.Tokens.Create)
+				admin.Delete("/tokens/{id}", deps.Tokens.Revoke)
+			}
 		})
 	})
 	if deps.Frontend != nil {
