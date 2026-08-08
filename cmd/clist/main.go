@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
 	"github.com/sunnyhmz7010/CList/internal/gallery"
+	"github.com/sunnyhmz7010/CList/internal/health"
 	"github.com/sunnyhmz7010/CList/internal/migration"
 	"github.com/sunnyhmz7010/CList/internal/preview"
 	"github.com/sunnyhmz7010/CList/internal/storage"
@@ -47,7 +49,22 @@ func frontendHandler() (http.Handler, error) {
 }
 
 func main() {
-	if err := run(); err != nil {
+	var err error
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "backup":
+			err = runBackup(os.Args[2:])
+		case "restore":
+			err = runRestore(os.Args[2:])
+		case "healthcheck":
+			err = runHealthcheck()
+		default:
+			err = fmt.Errorf("未知命令: %s", os.Args[1])
+		}
+	} else {
+		err = run()
+	}
+	if err != nil {
 		log.Fatal(err)
 	}
 }
@@ -133,6 +150,7 @@ func run() error {
 		return telegram.NewClient(baseURL, token, nil)
 	})
 	webhookHandler := api.NewWebhookHandlers(webhook.NewHandler(webhook.NewService(database, webhookResolver)))
+	healthHandler := api.NewHealthHandlers(health.New(health.Deps{DB: database, Backends: registry, MasterKeyPath: filepath.Join(cfg.DataDir, "secrets", "master.key"), DataDir: cfg.DataDir}), database)
 	router := api.NewRouter(api.RouterDeps{
 		Auth:          api.NewAuthHandlers(auth.NewAdminService(database), authenticator),
 		Authenticator: authenticator,
@@ -151,6 +169,7 @@ func run() error {
 		Migrations:    api.NewMigrationHandlers(migrationService),
 		Tokens:        api.NewTokenHandlers(tokenService),
 		Compat:        api.NewCompatHandlers(uploadService),
+		Health:        healthHandler,
 		Webhook:       webhookHandler,
 		Frontend:      handler,
 	})

@@ -21,4 +21,5 @@ WORKDIR /app
 COPY --from=go-builder /out/clist /app/clist
 VOLUME ["/data"]
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD ["/app/clist", "healthcheck"]
 ENTRYPOINT ["/app/clist"]

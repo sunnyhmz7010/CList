@@ -25,12 +25,18 @@ type RouterDeps struct {
 	Migrations    *MigrationHandlers
 	Tokens        *TokenHandlers
 	Compat        *CompatHandlers
+	Health        *HealthHandlers
 	Webhook       http.Handler
 	Frontend      http.Handler
 }
 
 func NewRouter(deps RouterDeps) http.Handler {
 	router := chi.NewRouter()
+	router.Use(SecurityMiddleware)
+	if deps.Health != nil {
+		router.Get("/health/live", deps.Health.Live)
+		router.Get("/health/ready", deps.Health.Ready)
+	}
 	deps.Auth.Routes(router)
 	router.Post("/api/v1/guest/{scope}/session", deps.Guests.Login)
 	router.Post("/api/v1/files/{id}/access", deps.FileAccess.Verify)
@@ -97,6 +103,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 				admin.Get("/tokens", deps.Tokens.List)
 				admin.Post("/tokens", deps.Tokens.Create)
 				admin.Delete("/tokens/{id}", deps.Tokens.Revoke)
+			}
+			if deps.Health != nil {
+				admin.Get("/admin/diagnostics", deps.Health.Diagnostics)
 			}
 		})
 	})
