@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -19,7 +20,11 @@ func TestProfileConfigIsEncryptedAtRest(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
-	service := NewProfileService(database, bytes.Repeat([]byte("x"), 32), NewRegistry())
+	registry := NewRegistry()
+	registry.SetFactory(func(_ string, _ map[string]string) (Backend, error) {
+		return profileBackend{}, nil
+	})
+	service := NewProfileService(database, bytes.Repeat([]byte("x"), 32), registry)
 	profile, err := service.Create(context.Background(), ProfileInput{Type: "local", Name: "local", Enabled: true, Config: map[string]string{"root": root, "bot_token": "secret"}})
 	if err != nil {
 		t.Fatal(err)
@@ -32,3 +37,16 @@ func TestProfileConfigIsEncryptedAtRest(t *testing.T) {
 		t.Fatal("plaintext secret persisted")
 	}
 }
+
+type profileBackend struct{}
+
+func (profileBackend) Validate(context.Context) error    { return nil }
+func (profileBackend) Capabilities() Capabilities        { return Capabilities{} }
+func (profileBackend) HealthCheck(context.Context) error { return nil }
+func (profileBackend) Put(context.Context, io.Reader, ObjectMeta) (Object, error) {
+	return Object{}, nil
+}
+func (profileBackend) Open(context.Context, string, *ByteRange) (Reader, error) {
+	return Reader{}, nil
+}
+func (profileBackend) Delete(context.Context, string) error { return nil }

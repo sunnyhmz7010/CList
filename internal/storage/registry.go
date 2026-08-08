@@ -8,7 +8,10 @@ import (
 type Registry struct {
 	mu       sync.RWMutex
 	backends map[string]Backend
+	factory  BackendFactory
 }
+
+type BackendFactory func(kind string, config map[string]string) (Backend, error)
 
 func NewRegistry() *Registry {
 	return &Registry{backends: make(map[string]Backend)}
@@ -18,6 +21,31 @@ func (r *Registry) Register(id string, backend Backend) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.backends[id] = backend
+}
+
+func (r *Registry) SetFactory(factory BackendFactory) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.factory = factory
+}
+
+func (r *Registry) Build(kind string, config map[string]string) (Backend, error) {
+	r.mu.RLock()
+	factory := r.factory
+	r.mu.RUnlock()
+	if factory == nil {
+		return nil, ErrBackendNotFound
+	}
+	return factory(kind, config)
+}
+
+func (r *Registry) RegisterConfig(id, kind string, config map[string]string) error {
+	backend, err := r.Build(kind, config)
+	if err != nil {
+		return err
+	}
+	r.Register(id, backend)
+	return nil
 }
 
 func (r *Registry) Resolve(id string) (Backend, error) {

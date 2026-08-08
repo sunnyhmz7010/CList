@@ -13,7 +13,6 @@ import (
 	"time"
 
 	clistcrypto "github.com/sunnyhmz7010/CList/internal/crypto"
-	"github.com/sunnyhmz7010/CList/internal/storage/local"
 )
 
 var ErrInvalidProfile = errors.New("invalid storage profile")
@@ -42,6 +41,10 @@ func (s *ProfileService) Create(ctx context.Context, input ProfileInput) (Profil
 	if err := validateProfile(input); err != nil {
 		return Profile{}, err
 	}
+	backend, err := s.registry.Build(input.Type, input.Config)
+	if err != nil {
+		return Profile{}, err
+	}
 	raw, err := json.Marshal(input.Config)
 	if err != nil {
 		return Profile{}, err
@@ -60,10 +63,32 @@ VALUES(?,?,?,?,?,0,?,?)`, id, input.Type, input.Name, encrypted, boolInt(input.E
 	if err != nil {
 		return Profile{}, err
 	}
-	if input.Type == "local" {
-		s.registry.Register(id, local.New(input.Config["root"]))
-	}
+	s.registry.Register(id, backend)
 	return s.get(ctx, id)
+}
+
+// LoadEnabled 在进程启动时恢复已启用的存储档案。
+func (s *ProfileService) LoadEnabled(ctx context.Context) error {
+	rows, err := s.db.QueryContext(ctx, "SELECT id,type,encrypted_config FROM storage_profiles WHERE enabled=1 ORDER BY created_at,id")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, kind string
+		var encrypted []byte
+		if err := rows.Scan(&id, &kind, &encrypted); err != nil {
+			return err
+		}
+		config, err := s.decryptConfig(id, encrypted)
+		if err != nil {
+			return err
+		}
+		if err := s.registry.RegisterConfig(id, kind, config); err != nil {
+			return err
+		}
+	}
+	return rows.Err()
 }
 
 func (s *ProfileService) List(ctx context.Context) ([]Profile, error) {
@@ -114,6 +139,10 @@ func (s *ProfileService) Config(ctx context.Context, id string) (map[string]stri
 	if err := s.db.QueryRowContext(ctx, "SELECT encrypted_config FROM storage_profiles WHERE id=?", id).Scan(&encrypted); err != nil {
 		return nil, err
 	}
+	return s.decryptConfig(id, encrypted)
+}
+
+func (s *ProfileService) decryptConfig(id string, encrypted []byte) (map[string]string, error) {
 	if len(encrypted) == 0 && id == "local-default" {
 		return map[string]string{"root": "/data/files"}, nil
 	}
@@ -122,8 +151,10 @@ func (s *ProfileService) Config(ctx context.Context, id string) (map[string]stri
 		return nil, err
 	}
 	var config map[string]string
-	err = json.Unmarshal(raw, &config)
-	return config, err
+	if err = json.Unmarshal(raw, &config); err != nil {
+		return nil, err
+	}
+	return config, nil
 }
 
 func (s *ProfileService) get(ctx context.Context, id string) (Profile, error) {

@@ -18,6 +18,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/files"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 	"github.com/sunnyhmz7010/CList/internal/storage/local"
+	"github.com/sunnyhmz7010/CList/internal/storage/telegram"
 	"github.com/sunnyhmz7010/CList/internal/uploads"
 )
 
@@ -75,8 +76,25 @@ func run() error {
 	fileService := files.NewFileService(fileRepo, folderRepo)
 	folderService := files.NewFolderService(folderRepo)
 	registry := storage.NewRegistry()
-	registry.Register("local-default", local.New(filepath.Join(cfg.DataDir, "files")))
+	registry.SetFactory(func(kind string, values map[string]string) (storage.Backend, error) {
+		switch kind {
+		case "local":
+			return local.New(values["root"]), nil
+		case "telegram_official":
+			return telegram.New(telegram.Config{
+				BaseURL:   values["base_url"],
+				BotToken:  values["bot_token"],
+				ChannelID: values["channel_id"],
+			}), nil
+		default:
+			return nil, storage.ErrBackendNotFound
+		}
+	})
 	profileService := storage.NewProfileService(database, masterKey, registry)
+	registry.Register("local-default", local.New(filepath.Join(cfg.DataDir, "files")))
+	if err := profileService.LoadEnabled(context.Background()); err != nil {
+		return err
+	}
 	uploadService := uploads.NewService(database, filepath.Join(cfg.DataDir, "chunks"), registry, fileService)
 	guestService := auth.NewGuestService(database)
 	filePasswordService := auth.NewFilePasswordService(database)
