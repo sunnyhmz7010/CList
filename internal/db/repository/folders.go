@@ -16,14 +16,14 @@ const (
 )
 
 type Folder struct {
-	ID                string
-	ParentID          string
-	Name              string
-	OwnerVaultID      string
-	GalleryVisibility Visibility
-	State             FolderState
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID                string      `json:"id"`
+	ParentID          string      `json:"parent_id,omitempty"`
+	Name              string      `json:"name"`
+	OwnerVaultID      string      `json:"owner_vault_id,omitempty"`
+	GalleryVisibility Visibility  `json:"gallery_visibility"`
+	State             FolderState `json:"state"`
+	CreatedAt         time.Time   `json:"created_at"`
+	UpdatedAt         time.Time   `json:"updated_at"`
 }
 
 type FolderListOptions struct {

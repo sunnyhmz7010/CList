@@ -1,0 +1,8 @@
+:root { color: #152238; background: #f6f8fb; font-family: Inter, system-ui, sans-serif; }
+body { margin: 0; }
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: #fff; border-bottom: 1px solid #dce3ec; }
+.workspace { display: grid; grid-template-columns: minmax(14rem, 20rem) 1fr; gap: 1.5rem; padding: 1.5rem; }
+.file-list { list-style: none; padding: 0; }
+.file-list li { display: grid; grid-template-columns: 1fr auto 8rem; gap: 1rem; align-items: center; padding: .75rem; background: #fff; border-bottom: 1px solid #e8edf3; }
+button, input { font: inherit; }
+@media (max-width: 720px) { .workspace { grid-template-columns: 1fr; padding: 1rem; } .file-list li { grid-template-columns: 1fr auto; } .file-list progress { grid-column: 1 / -1; width: 100%; } }

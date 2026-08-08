@@ -1,13 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-export function App() {
-  return (
-    <main>
-      <h1>CList</h1>
-    </main>
-  )
-}
+import { App } from './app/App'
+import './styles.css'
+
+export { App }
 
 const container = typeof document === 'undefined' ? null : document.getElementById('root')
 

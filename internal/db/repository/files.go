@@ -28,21 +28,21 @@ const (
 )
 
 type File struct {
-	PublicID          string
-	FolderID          string
-	OwnerVaultID      string
-	StorageProfileID  string
-	StorageKey        string
-	FileName          string
-	MIMEType          string
-	Size              int64
-	SHA256            string
-	GalleryVisibility Visibility
-	State             FileState
-	PurgedAt          *time.Time
-	LastError         string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	PublicID          string     `json:"public_id"`
+	FolderID          string     `json:"folder_id,omitempty"`
+	OwnerVaultID      string     `json:"owner_vault_id,omitempty"`
+	StorageProfileID  string     `json:"storage_profile_id"`
+	StorageKey        string     `json:"-"`
+	FileName          string     `json:"file_name"`
+	MIMEType          string     `json:"mime_type"`
+	Size              int64      `json:"size"`
+	SHA256            string     `json:"sha256"`
+	GalleryVisibility Visibility `json:"gallery_visibility"`
+	State             FileState  `json:"state"`
+	PurgedAt          *time.Time `json:"purged_at,omitempty"`
+	LastError         string     `json:"last_error,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 type FileListOptions struct {
