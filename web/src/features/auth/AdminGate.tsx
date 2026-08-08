@@ -47,9 +47,9 @@ function AdminCredentialsForm({title, submitLabel, initialize = false, onAuthent
   return <main className="auth-page">
     <form onSubmit={event => void submit(event)}>
       <h2>{title}</h2>
-      {initialize && <p>首次使用请设置管理员账号和至少 12 位密码。</p>}
+      {initialize && <p>首次使用请设置管理员账号和密码。</p>}
       <label>账号<input value={account} onChange={event => setAccount(event.target.value)} autoComplete="username" required /></label>
-      <label>密码<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete={initialize ? 'new-password' : 'current-password'} minLength={12} required /></label>
+      <label>密码<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete={initialize ? 'new-password' : 'current-password'} required /></label>
       <button type="submit" disabled={pending}>{pending ? '处理中' : submitLabel}</button>
       {message && <p role="alert">{message}</p>}
     </form>

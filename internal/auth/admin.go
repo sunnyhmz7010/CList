@@ -48,7 +48,7 @@ func (s *AdminService) Initialize(ctx context.Context, account, password string)
 	if initialized {
 		return ErrAlreadyInitialized
 	}
-	if account == "" || len(password) < 12 {
+	if account == "" {
 		return ErrInvalidCredentials
 	}
 	hash, err := hashPassword(password)
@@ -109,9 +109,6 @@ func (s *AdminService) Login(ctx context.Context, account, password string) (Ses
 }
 
 func (s *AdminService) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
-	if len(newPassword) < 12 {
-		return ErrInvalidCredentials
-	}
 	var storedHash string
 	if err := s.db.QueryRowContext(ctx,
 		"SELECT value FROM settings WHERE key = 'admin.password_hash'").Scan(&storedHash); err != nil {

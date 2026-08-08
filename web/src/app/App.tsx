@@ -2,6 +2,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {RouterProvider} from 'react-router-dom'
 
 import {createAppRouter} from './router'
+export {AdminLayout} from './AdminLayout'
 export {AuthLanding} from '../features/auth/AdminGate'
 
 const queryClient = new QueryClient()
@@ -12,5 +13,5 @@ export function Shell() {
 }
 
 export function App() {
-  return <QueryClientProvider client={queryClient}><Shell />{router && <RouterProvider router={router} />}</QueryClientProvider>
+  return <QueryClientProvider client={queryClient}>{router && <RouterProvider router={router} />}</QueryClientProvider>
 }
