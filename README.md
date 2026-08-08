@@ -44,12 +44,6 @@ services:
       - "8080:8080"
     volumes:
       - clist_data:/data
-    healthcheck:
-      test: ["CMD", "/app/clist", "healthcheck"]
-      interval: 30s
-      timeout: 5s
-      start_period: 10s
-      retries: 3
 
 volumes:
   clist_data:
