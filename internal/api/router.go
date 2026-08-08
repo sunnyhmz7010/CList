@@ -20,6 +20,7 @@ type RouterDeps struct {
 	Storage       *StorageHandlers
 	Gallery       *GalleryHandlers
 	GalleryAuth   *auth.GuestAuthenticator
+	Preview       *PreviewHandlers
 	Webhook       http.Handler
 	Frontend      http.Handler
 }
@@ -39,6 +40,10 @@ func NewRouter(deps RouterDeps) http.Handler {
 	}
 	router.Get("/f/{publicID}/{filename}", deps.Downloads.Serve)
 	router.Head("/f/{publicID}/{filename}", deps.Downloads.Serve)
+	if deps.Preview != nil {
+		router.Get("/p/{id}", deps.Preview.Serve)
+		router.Head("/p/{id}", deps.Preview.Serve)
+	}
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Group(func(protected chi.Router) {
 			protected.Use(deps.Authenticator.RequireManager)
@@ -46,6 +51,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 			protected.Get("/files/{id}", deps.Files.Get)
 			protected.Patch("/files/{id}", deps.Files.Patch)
 			protected.Delete("/files/{id}", deps.Files.Delete)
+			if deps.Preview != nil {
+				protected.Get("/files/{id}/preview", deps.Preview.Serve)
+			}
 			protected.Get("/folders", deps.Folders.List)
 			protected.Post("/folders", deps.Folders.Create)
 			protected.Patch("/folders/{id}", deps.Folders.Patch)

@@ -15,6 +15,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
 	"github.com/sunnyhmz7010/CList/internal/gallery"
+	"github.com/sunnyhmz7010/CList/internal/preview"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 	"github.com/sunnyhmz7010/CList/internal/uploads"
 )
@@ -218,6 +219,8 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message = http.StatusBadRequest, "invalid_storage_profile", "存储档案配置无效"
 	case errors.Is(err, gallery.ErrDisabled):
 		status, response.Code, response.Message = http.StatusNotFound, "gallery_disabled", "相册未启用"
+	case errors.Is(err, preview.ErrTooLarge), errors.Is(err, preview.ErrArchiveLimit):
+		status, response.Code, response.Message = http.StatusUnprocessableEntity, "preview_unsafe", "文件不符合安全预览限制"
 	}
 	writeJSON(w, status, response)
 }
