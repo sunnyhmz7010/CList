@@ -16,6 +16,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/auth"
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
+	"github.com/sunnyhmz7010/CList/internal/jobs"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 )
 
@@ -59,6 +60,7 @@ type Service struct {
 	db       *sql.DB
 	dir      string
 	registry *storage.Registry
+	storage  *storage.Orchestrator
 	files    *files.FileService
 	idem     *repository.IdempotencyRepo
 	maxChunk int64
@@ -66,7 +68,7 @@ type Service struct {
 
 func NewService(database *sql.DB, dir string, registry *storage.Registry, fileService *files.FileService) *Service {
 	return &Service{
-		db: database, dir: dir, registry: registry, files: fileService,
+		db: database, dir: dir, registry: registry, storage: storage.NewOrchestrator(registry, jobs.NewStore(database)), files: fileService,
 		idem: repository.NewIdempotencyRepo(database), maxChunk: 64 << 20,
 	}
 }
@@ -264,12 +266,13 @@ func (s *Service) Complete(ctx context.Context, uploadID string, actor auth.Acto
 	}
 	reader := &chunkSequence{dir: filepath.Join(s.dir, uploadID), total: upload.TotalChunks}
 	defer reader.Close()
-	object, err := backend.Put(ctx, reader, storage.ObjectMeta{
+	result := s.storage.Put(ctx, upload.StorageProfileID, reader, storage.ObjectMeta{
 		Key: "objects/" + uploadID, FileName: upload.FileName, MIMEType: upload.MIMEType, Size: upload.TotalSize,
 	})
-	if err != nil {
-		return repository.File{}, err
+	if result.Err != nil {
+		return repository.File{}, result.Err
 	}
+	object := result.Object
 	if object.Size != upload.TotalSize || object.SHA256 != upload.SHA256 {
 		_ = backend.Delete(ctx, object.Key)
 		return repository.File{}, ErrFileHash
