@@ -1,0 +1,13 @@
+services:
+  clist:
+    build:
+      context: .
+    image: clist:local
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - clist_data:/data
+
+volumes:
+  clist_data:

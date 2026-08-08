@@ -1,0 +1,19 @@
+{
+  "name": "clist-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
+  }
+}
