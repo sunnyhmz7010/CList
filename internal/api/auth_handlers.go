@@ -72,7 +72,12 @@ func (h *AuthHandlers) status(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"initialized": initialized})
+	authenticated := false
+	if initialized {
+		_, err := h.authenticator.AdminActor(r)
+		authenticated = err == nil
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"initialized": initialized, "authenticated": authenticated})
 }
 
 func (h *AuthHandlers) initialize(w http.ResponseWriter, r *http.Request) {

@@ -2,6 +2,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {RouterProvider} from 'react-router-dom'
 
 import {createAppRouter} from './router'
+export {AuthLanding} from '../features/auth/AdminGate'
 
 const queryClient = new QueryClient()
 const router = typeof document === 'undefined' ? null : createAppRouter()
