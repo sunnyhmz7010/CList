@@ -18,6 +18,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/files"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 	"github.com/sunnyhmz7010/CList/internal/storage/local"
+	"github.com/sunnyhmz7010/CList/internal/storage/streaming"
 	"github.com/sunnyhmz7010/CList/internal/storage/telegram"
 	"github.com/sunnyhmz7010/CList/internal/uploads"
 )
@@ -82,6 +83,12 @@ func run() error {
 			return local.New(values["root"]), nil
 		case "telegram_official":
 			return telegram.New(telegram.Config{
+				BaseURL:   values["base_url"],
+				BotToken:  values["bot_token"],
+				ChannelID: values["channel_id"],
+			}), nil
+		case "telegram_streaming":
+			return streaming.New(streaming.Config{
 				BaseURL:   values["base_url"],
 				BotToken:  values["bot_token"],
 				ChannelID: values["channel_id"],
