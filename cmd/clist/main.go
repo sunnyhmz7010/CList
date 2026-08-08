@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sunnyhmz7010/CList/internal/api"
+	"github.com/sunnyhmz7010/CList/internal/auth"
 	"github.com/sunnyhmz7010/CList/internal/config"
 	"github.com/sunnyhmz7010/CList/internal/crypto"
 	"github.com/sunnyhmz7010/CList/internal/db"
@@ -61,7 +63,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	return http.ListenAndServe(cfg.ListenAddr, handler)
+	mux := http.NewServeMux()
+	authenticator := auth.NewAuthenticator(database)
+	api.NewAuthHandlers(auth.NewAdminService(database), authenticator).Register(mux)
+	mux.Handle("/", handler)
+	return http.ListenAndServe(cfg.ListenAddr, mux)
 }
 
 func prepareDataDirs(dataDir string) error {
