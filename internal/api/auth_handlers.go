@@ -17,6 +17,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/gallery"
 	"github.com/sunnyhmz7010/CList/internal/preview"
 	"github.com/sunnyhmz7010/CList/internal/storage"
+	"github.com/sunnyhmz7010/CList/internal/trash"
 	"github.com/sunnyhmz7010/CList/internal/uploads"
 )
 
@@ -221,6 +222,8 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message = http.StatusNotFound, "gallery_disabled", "相册未启用"
 	case errors.Is(err, preview.ErrTooLarge), errors.Is(err, preview.ErrArchiveLimit):
 		status, response.Code, response.Message = http.StatusUnprocessableEntity, "preview_unsafe", "文件不符合安全预览限制"
+	case errors.Is(err, trash.ErrRestoreConflict):
+		status, response.Code, response.Message = http.StatusConflict, "restore_conflict", "原位置存在同名项目"
 	}
 	writeJSON(w, status, response)
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/storage/local"
 	"github.com/sunnyhmz7010/CList/internal/storage/streaming"
 	"github.com/sunnyhmz7010/CList/internal/storage/telegram"
+	"github.com/sunnyhmz7010/CList/internal/trash"
 	"github.com/sunnyhmz7010/CList/internal/uploads"
 	"github.com/sunnyhmz7010/CList/internal/webhook"
 )
@@ -110,6 +111,7 @@ func run() error {
 	guestAuthenticator := auth.NewGuestAuthenticator(database, authenticator)
 	galleryService := gallery.NewService(database, fileRepo, folderRepo)
 	previewService := preview.NewService(fileService, registry)
+	trashService := trash.NewService(database)
 	filePasswordService := auth.NewFilePasswordService(database)
 	vaultService := auth.NewVaultService(database)
 	webhookResolver := webhook.NewStorageResolver(profileService, func(baseURL, token string) webhook.Sender {
@@ -130,6 +132,7 @@ func run() error {
 		Gallery:       api.NewGalleryHandlers(galleryService),
 		GalleryAuth:   guestAuthenticator,
 		Preview:       api.NewPreviewHandlers(previewService, filePasswordService, authenticator),
+		Trash:         api.NewTrashHandlers(trashService),
 		Webhook:       webhookHandler,
 		Frontend:      handler,
 	})

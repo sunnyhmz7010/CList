@@ -21,6 +21,7 @@ type RouterDeps struct {
 	Gallery       *GalleryHandlers
 	GalleryAuth   *auth.GuestAuthenticator
 	Preview       *PreviewHandlers
+	Trash         *TrashHandlers
 	Webhook       http.Handler
 	Frontend      http.Handler
 }
@@ -50,14 +51,21 @@ func NewRouter(deps RouterDeps) http.Handler {
 			protected.Get("/files", deps.Files.List)
 			protected.Get("/files/{id}", deps.Files.Get)
 			protected.Patch("/files/{id}", deps.Files.Patch)
-			protected.Delete("/files/{id}", deps.Files.Delete)
+			if deps.Trash != nil {
+				protected.Delete("/files/{id}", deps.Trash.DeleteFile)
+				protected.Delete("/folders/{id}", deps.Trash.DeleteFolder)
+				protected.Get("/trash", deps.Trash.List)
+				protected.Post("/trash/{id}/restore", deps.Trash.Restore)
+			} else {
+				protected.Delete("/files/{id}", deps.Files.Delete)
+				protected.Delete("/folders/{id}", deps.Folders.Delete)
+			}
 			if deps.Preview != nil {
 				protected.Get("/files/{id}/preview", deps.Preview.Serve)
 			}
 			protected.Get("/folders", deps.Folders.List)
 			protected.Post("/folders", deps.Folders.Create)
 			protected.Patch("/folders/{id}", deps.Folders.Patch)
-			protected.Delete("/folders/{id}", deps.Folders.Delete)
 			protected.Post("/uploads", deps.Uploads.Init)
 			protected.Put("/uploads/{id}/chunks/{index}", deps.Uploads.PutChunk)
 			protected.Get("/uploads/{id}", deps.Uploads.Get)
