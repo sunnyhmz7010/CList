@@ -53,6 +53,9 @@ func run() error {
 		return err
 	}
 	defer database.Close()
+	if err := db.Apply(context.Background(), database); err != nil {
+		return err
+	}
 
 	handler, err := frontendHandler()
 	if err != nil {
