@@ -15,7 +15,7 @@ COPY cmd ./cmd
 COPY --from=web-builder /src/cmd/clist/web-dist ./cmd/clist/web-dist
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/clist ./cmd/clist
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12
 
 WORKDIR /app
 COPY --from=go-builder /out/clist /app/clist

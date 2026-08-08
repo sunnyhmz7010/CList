@@ -1,10 +1,17 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/sunnyhmz7010/CList/internal/config"
+	"github.com/sunnyhmz7010/CList/internal/crypto"
+	"github.com/sunnyhmz7010/CList/internal/db"
 )
 
 // frontend 包含由 Vite 构建的前端静态资源。
@@ -25,9 +32,46 @@ func frontendHandler() (http.Handler, error) {
 }
 
 func main() {
-	handler, err := frontendHandler()
-	if err != nil {
+	if err := run(); err != nil {
 		log.Fatal(err)
 	}
-	log.Fatal(http.ListenAndServe(":8080", handler))
+}
+
+func run() error {
+	cfg, err := config.Load(defaultDataDir())
+	if err != nil {
+		return err
+	}
+	if err := prepareDataDirs(cfg.DataDir); err != nil {
+		return err
+	}
+	if _, err := crypto.MasterKey.LoadOrCreate(filepath.Join(cfg.DataDir, "secrets", "master.key")); err != nil {
+		return err
+	}
+	database, err := db.Open(context.Background(), filepath.Join(cfg.DataDir, "clist.db"))
+	if err != nil {
+		return err
+	}
+	defer database.Close()
+
+	handler, err := frontendHandler()
+	if err != nil {
+		return err
+	}
+	return http.ListenAndServe(cfg.ListenAddr, handler)
+}
+
+func prepareDataDirs(dataDir string) error {
+	for _, dir := range []string{
+		filepath.Join(dataDir, "files"),
+		filepath.Join(dataDir, "chunks"),
+		filepath.Join(dataDir, "migrations"),
+		filepath.Join(dataDir, "cache", "previews"),
+		filepath.Join(dataDir, "secrets"),
+	} {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			return err
+		}
+	}
+	return nil
 }
