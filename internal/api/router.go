@@ -18,6 +18,7 @@ type RouterDeps struct {
 	FileAccess    *FileAccessHandlers
 	Vaults        *VaultHandlers
 	Storage       *StorageHandlers
+	Webhook       http.Handler
 	Frontend      http.Handler
 }
 
@@ -28,6 +29,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 	router.Post("/api/v1/files/{id}/access", deps.FileAccess.Verify)
 	router.Post("/api/v1/vault", deps.Vaults.Create)
 	router.Post("/api/v1/vault/recover", deps.Vaults.Recover)
+	if deps.Webhook != nil {
+		router.Post("/webhooks/telegram/{profileSecret}", deps.Webhook.ServeHTTP)
+	}
 	router.Get("/f/{publicID}/{filename}", deps.Downloads.Serve)
 	router.Head("/f/{publicID}/{filename}", deps.Downloads.Serve)
 	router.Route("/api/v1", func(api chi.Router) {

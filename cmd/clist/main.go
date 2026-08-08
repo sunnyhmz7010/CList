@@ -21,6 +21,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/storage/streaming"
 	"github.com/sunnyhmz7010/CList/internal/storage/telegram"
 	"github.com/sunnyhmz7010/CList/internal/uploads"
+	"github.com/sunnyhmz7010/CList/internal/webhook"
 )
 
 // frontend 包含由 Vite 构建的前端静态资源。
@@ -106,6 +107,10 @@ func run() error {
 	guestService := auth.NewGuestService(database)
 	filePasswordService := auth.NewFilePasswordService(database)
 	vaultService := auth.NewVaultService(database)
+	webhookResolver := webhook.NewStorageResolver(profileService, func(baseURL, token string) webhook.Sender {
+		return telegram.NewClient(baseURL, token, nil)
+	})
+	webhookHandler := api.NewWebhookHandlers(webhook.NewHandler(webhook.NewService(database, webhookResolver)))
 	router := api.NewRouter(api.RouterDeps{
 		Auth:          api.NewAuthHandlers(auth.NewAdminService(database), authenticator),
 		Authenticator: authenticator,
@@ -117,6 +122,7 @@ func run() error {
 		FileAccess:    api.NewFileAccessHandlers(filePasswordService, fileService),
 		Vaults:        api.NewVaultHandlers(vaultService),
 		Storage:       api.NewStorageHandlers(profileService),
+		Webhook:       webhookHandler,
 		Frontend:      handler,
 	})
 	return http.ListenAndServe(cfg.ListenAddr, router)

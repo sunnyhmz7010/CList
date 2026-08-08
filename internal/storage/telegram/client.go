@@ -54,6 +54,15 @@ type fileResult struct {
 	FileSize int64  `json:"file_size"`
 }
 
+func (c *Client) SendMessage(ctx context.Context, chatID, text string, replyTo int64) error {
+	values := url.Values{"chat_id": {chatID}, "text": {text}}
+	if replyTo > 0 {
+		values.Set("reply_to_message_id", fmt.Sprint(replyTo))
+	}
+	_, err := postForm[json.RawMessage](ctx, c, "sendMessage", values)
+	return err
+}
+
 func (c *Client) SendDocument(ctx context.Context, chatID, fileName string, reader io.Reader) (messageResult, error) {
 	pipeReader, pipeWriter := io.Pipe()
 	writer := multipart.NewWriter(pipeWriter)
