@@ -14,6 +14,8 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/auth"
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
+	"github.com/sunnyhmz7010/CList/internal/storage"
+	"github.com/sunnyhmz7010/CList/internal/uploads"
 )
 
 type AuthHandlers struct {
@@ -197,6 +199,18 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message = http.StatusBadRequest, "invalid_request", "请求参数无效"
 	case errors.Is(err, repository.ErrNotFound):
 		status, response.Code, response.Message = http.StatusNotFound, "not_found", "资源不存在"
+	case errors.Is(err, uploads.ErrUploadNotFound):
+		status, response.Code, response.Message = http.StatusNotFound, "upload_not_found", "上传任务不存在"
+	case errors.Is(err, uploads.ErrChunkHash), errors.Is(err, uploads.ErrFileHash):
+		status, response.Code, response.Message = http.StatusUnprocessableEntity, "hash_mismatch", "文件校验失败"
+	case errors.Is(err, uploads.ErrMissingChunks), errors.Is(err, uploads.ErrUploadConflict):
+		status, response.Code, response.Message = http.StatusConflict, "upload_conflict", "上传状态冲突"
+	case errors.Is(err, uploads.ErrChunkTooLarge):
+		status, response.Code, response.Message = http.StatusRequestEntityTooLarge, "chunk_too_large", "分片超过大小限制"
+	case errors.Is(err, storage.ErrBackendNotFound), errors.Is(err, storage.ErrObjectNotFound):
+		status, response.Code, response.Message = http.StatusNotFound, "storage_not_found", "存储对象不存在"
+	case errors.Is(err, storage.ErrRangeUnsupported):
+		status, response.Code, response.Message = http.StatusMethodNotAllowed, "range_unsupported", "当前存储不支持此请求"
 	}
 	writeJSON(w, status, response)
 }

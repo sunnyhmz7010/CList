@@ -127,6 +127,9 @@ func (s *FileService) Get(ctx context.Context, publicID string, actor auth.Actor
 	if actor.Kind == auth.ActorAdmin || hasScope(actor, "read") {
 		return file, nil
 	}
+	if actor.Kind == auth.ActorPublic {
+		return file, nil
+	}
 	if (actor.Kind == auth.ActorVault || actor.Kind == auth.ActorGuest) && actor.ID == file.OwnerVaultID {
 		return file, nil
 	}

@@ -16,6 +16,9 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/db"
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
+	"github.com/sunnyhmz7010/CList/internal/storage"
+	"github.com/sunnyhmz7010/CList/internal/storage/local"
+	"github.com/sunnyhmz7010/CList/internal/uploads"
 )
 
 // frontend 包含由 Vite 构建的前端静态资源。
@@ -70,11 +73,16 @@ func run() error {
 	folderRepo := repository.NewFolderRepo(database)
 	fileService := files.NewFileService(fileRepo, folderRepo)
 	folderService := files.NewFolderService(folderRepo)
+	registry := storage.NewRegistry()
+	registry.Register("local-default", local.New(filepath.Join(cfg.DataDir, "files")))
+	uploadService := uploads.NewService(database, filepath.Join(cfg.DataDir, "chunks"), registry, fileService)
 	router := api.NewRouter(api.RouterDeps{
 		Auth:          api.NewAuthHandlers(auth.NewAdminService(database), authenticator),
 		Authenticator: authenticator,
 		Files:         api.NewFileHandlers(fileService),
 		Folders:       api.NewFolderHandlers(folderService),
+		Uploads:       api.NewUploadHandlers(uploadService),
+		Downloads:     api.NewDownloadHandlers(fileService, registry),
 		Frontend:      handler,
 	})
 	return http.ListenAndServe(cfg.ListenAddr, router)
