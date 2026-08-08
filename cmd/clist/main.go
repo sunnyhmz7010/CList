@@ -112,6 +112,7 @@ func run() error {
 	galleryService := gallery.NewService(database, fileRepo, folderRepo)
 	previewService := preview.NewService(fileService, registry)
 	trashService := trash.NewService(database)
+	purgeService := trash.NewPurgeService(database, registry)
 	filePasswordService := auth.NewFilePasswordService(database)
 	vaultService := auth.NewVaultService(database)
 	webhookResolver := webhook.NewStorageResolver(profileService, func(baseURL, token string) webhook.Sender {
@@ -132,7 +133,7 @@ func run() error {
 		Gallery:       api.NewGalleryHandlers(galleryService),
 		GalleryAuth:   guestAuthenticator,
 		Preview:       api.NewPreviewHandlers(previewService, filePasswordService, authenticator),
-		Trash:         api.NewTrashHandlers(trashService),
+		Trash:         api.NewTrashHandlers(trashService, purgeService),
 		Webhook:       webhookHandler,
 		Frontend:      handler,
 	})

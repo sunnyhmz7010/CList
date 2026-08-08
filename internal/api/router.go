@@ -56,6 +56,7 @@ func NewRouter(deps RouterDeps) http.Handler {
 				protected.Delete("/folders/{id}", deps.Trash.DeleteFolder)
 				protected.Get("/trash", deps.Trash.List)
 				protected.Post("/trash/{id}/restore", deps.Trash.Restore)
+				protected.Delete("/trash/{id}", deps.Trash.Purge)
 			} else {
 				protected.Delete("/files/{id}", deps.Files.Delete)
 				protected.Delete("/folders/{id}", deps.Folders.Delete)
