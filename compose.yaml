@@ -1,8 +1,7 @@
 services:
   clist:
-    build:
-      context: .
-    image: clist:local
+    image: ghcr.io/sunnyhmz7010/clist:latest
+    container_name: clist
     restart: unless-stopped
     ports:
       - "8080:8080"

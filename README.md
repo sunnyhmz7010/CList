@@ -30,17 +30,71 @@ CList 面向希望用一个可备份、可恢复的单体服务管理本地文�
 - 已安装 Docker，宿主机提供可持久化卷。
 - 首次启动后通过浏览器完成管理员初始化。
 
-### 📦 安装与运行
+### 📦 Docker Compose（推荐）
+
+新建 `compose.yaml`，写入以下内容：
+
+```yaml
+services:
+  clist:
+    image: ghcr.io/sunnyhmz7010/clist:latest
+    container_name: clist
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - clist_data:/data
+    healthcheck:
+      test: ["CMD", "/app/clist", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  clist_data:
+```
+
+然后启动：
+
+```bash
+docker compose up -d
+```
+
+查看日志：
+
+```bash
+docker compose logs -f
+```
+
+打开 `http://localhost:8080`，首次进入页面后设置管理员账号和密码。`clist_data` 卷会保存 SQLite 数据库、本地文件、上传分片、迁移缓存和加密主密钥；迁移或备份时请完整保留该卷。
+
+### 🖥️ 命令行方式
 
 ```bash
 docker run -d --name clist --restart unless-stopped -p 8080:8080 -v clist_data:/data ghcr.io/sunnyhmz7010/clist:latest
 ```
 
-也可以在仓库根目录运行：
+### 🛠️ 自行构建镜像
+
+如果你想自己构建而不是使用预构建镜像：
 
 ```bash
-docker compose up -d --build
+git clone https://github.com/sunnyhmz7010/CList.git
+cd CList
+docker build -t clist .
+docker run -d --name clist --restart unless-stopped -p 8080:8080 -v clist_data:/data clist
 ```
+
+如果用 Docker Compose，把 `compose.yaml` 里的 `image: ghcr.io/...` 换成：
+
+```yaml
+build:
+  context: .
+image: clist:local
+```
+
+然后运行 `docker compose up -d --build`。
 
 ## 📖 使用说明
 
@@ -90,7 +144,7 @@ go test ./...
 npm --prefix web install
 npm --prefix web test -- --run
 npm --prefix web run build
-docker compose up -d --build
+docker build -t clist .
 ```
 
 ## 🔐 安全报告
