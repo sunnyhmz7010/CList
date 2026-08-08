@@ -71,6 +71,47 @@ func (a *Authenticator) RequireAdmin(next http.Handler) http.Handler {
 	})
 }
 
+func (a *Authenticator) RequireManager(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if actor, err := a.AdminActor(r); err == nil {
+			if err := a.verifyCSRF(r); err != nil {
+				writeAuthError(w, r, http.StatusForbidden, "csrf_required", "CSRF 校验失败")
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), actorContextKey, actor)))
+			return
+		}
+		actor, err := a.VaultActor(r)
+		if err != nil {
+			writeAuthError(w, r, http.StatusUnauthorized, "unauthorized", "需要管理员或恢复密钥")
+			return
+		}
+		if err := a.verifyScopedCSRF(r, VaultCookieName, "vault"); err != nil {
+			writeAuthError(w, r, http.StatusForbidden, "csrf_required", "CSRF 校验失败")
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), actorContextKey, actor)))
+	})
+}
+
+func (a *Authenticator) VaultActor(r *http.Request) (Actor, error) {
+	cookie, err := r.Cookie(VaultCookieName)
+	if err != nil {
+		return Actor{}, ErrUnauthorized
+	}
+	var actorID, expiresAt string
+	err = a.db.QueryRowContext(r.Context(), `SELECT actor_id,expires_at FROM sessions
+WHERE token_hash=? AND kind='vault' AND revoked_at IS NULL`, hashToken(cookie.Value)).Scan(&actorID, &expiresAt)
+	if err != nil {
+		return Actor{}, ErrUnauthorized
+	}
+	expires, err := parseSessionTime(expiresAt)
+	if err != nil || !expires.After(time.Now().UTC()) {
+		return Actor{}, ErrUnauthorized
+	}
+	return Actor{Kind: ActorVault, ID: actorID, Scopes: map[string]struct{}{"read": {}, "upload": {}, "manage": {}}}, nil
+}
+
 func (a *Authenticator) AdminActor(r *http.Request) (Actor, error) {
 	cookie, err := r.Cookie(AdminCookieName)
 	if err != nil || cookie.Value == "" {
@@ -130,6 +171,27 @@ func (a *Authenticator) verifyCSRF(r *http.Request) error {
 		return err
 	}
 	if subtle.ConstantTimeCompare([]byte(expected), []byte(hashToken(header))) != 1 {
+		return ErrUnauthorized
+	}
+	return nil
+}
+
+func (a *Authenticator) verifyScopedCSRF(r *http.Request, sessionCookie, kind string) error {
+	csrfCookie, err := r.Cookie(CSRFCookieName)
+	if err != nil {
+		return ErrUnauthorized
+	}
+	header := r.Header.Get("X-CSRF-Token")
+	if header == "" || subtle.ConstantTimeCompare([]byte(csrfCookie.Value), []byte(header)) != 1 {
+		return ErrUnauthorized
+	}
+	cookie, err := r.Cookie(sessionCookie)
+	if err != nil {
+		return ErrUnauthorized
+	}
+	var expected string
+	err = a.db.QueryRowContext(r.Context(), "SELECT csrf_token_hash FROM sessions WHERE token_hash=? AND kind=? AND revoked_at IS NULL", hashToken(cookie.Value), kind).Scan(&expected)
+	if err != nil || subtle.ConstantTimeCompare([]byte(expected), []byte(hashToken(header))) != 1 {
 		return ErrUnauthorized
 	}
 	return nil

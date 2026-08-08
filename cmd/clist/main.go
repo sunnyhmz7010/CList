@@ -78,6 +78,7 @@ func run() error {
 	uploadService := uploads.NewService(database, filepath.Join(cfg.DataDir, "chunks"), registry, fileService)
 	guestService := auth.NewGuestService(database)
 	filePasswordService := auth.NewFilePasswordService(database)
+	vaultService := auth.NewVaultService(database)
 	router := api.NewRouter(api.RouterDeps{
 		Auth:          api.NewAuthHandlers(auth.NewAdminService(database), authenticator),
 		Authenticator: authenticator,
@@ -86,7 +87,8 @@ func run() error {
 		Uploads:       api.NewUploadHandlers(uploadService),
 		Downloads:     api.NewDownloadHandlers(fileService, registry, filePasswordService, authenticator),
 		Guests:        api.NewGuestHandlers(guestService),
-		FileAccess:    api.NewFileAccessHandlers(filePasswordService),
+		FileAccess:    api.NewFileAccessHandlers(filePasswordService, fileService),
+		Vaults:        api.NewVaultHandlers(vaultService),
 		Frontend:      handler,
 	})
 	return http.ListenAndServe(cfg.ListenAddr, router)
