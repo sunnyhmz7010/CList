@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -26,10 +27,11 @@ type Folder struct {
 }
 
 type FolderListOptions struct {
-	ParentID string
-	Cursor   string
-	Limit    int
-	State    FolderState
+	ParentID    string
+	OwnerFilter *string
+	Cursor      string
+	Limit       int
+	State       FolderState
 }
 
 type FolderRepo struct {
@@ -76,23 +78,32 @@ func (r *FolderRepo) List(ctx context.Context, options FolderListOptions) ([]Fol
 		options.State = FolderStateActive
 	}
 	limit := normalizeLimit(options.Limit)
-	var rows *sql.Rows
-	var err error
+	var query string
+	var arguments []any
 	if options.ParentID == "" {
-		rows, err = r.db.QueryContext(ctx, `
+		query = `
 SELECT id, parent_id, name, owner_vault_id, gallery_visibility, state, created_at, updated_at
 FROM folders
-WHERE parent_id IS NULL AND state = ? AND (? = '' OR id > ?)
-ORDER BY id
-LIMIT ?`, options.State, options.Cursor, options.Cursor, limit)
+	WHERE parent_id IS NULL AND state = ? AND (? = '' OR id > ?)`
+		arguments = []any{options.State, options.Cursor, options.Cursor}
 	} else {
-		rows, err = r.db.QueryContext(ctx, `
+		query = `
 SELECT id, parent_id, name, owner_vault_id, gallery_visibility, state, created_at, updated_at
 FROM folders
-WHERE parent_id = ? AND state = ? AND (? = '' OR id > ?)
-ORDER BY id
-LIMIT ?`, options.ParentID, options.State, options.Cursor, options.Cursor, limit)
+	WHERE parent_id = ? AND state = ? AND (? = '' OR id > ?)`
+		arguments = []any{options.ParentID, options.State, options.Cursor, options.Cursor}
 	}
+	if options.OwnerFilter != nil {
+		if *options.OwnerFilter == "" {
+			query += " AND owner_vault_id IS NULL"
+		} else {
+			query += " AND owner_vault_id = ?"
+			arguments = append(arguments, *options.OwnerFilter)
+		}
+	}
+	query += " ORDER BY id LIMIT ?"
+	arguments = append(arguments, limit)
+	rows, err := r.db.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +120,17 @@ LIMIT ?`, options.ParentID, options.State, options.Cursor, options.Cursor, limit
 	return folders, rows.Err()
 }
 
+func (r *FolderRepo) Get(ctx context.Context, id string) (Folder, error) {
+	row := r.db.QueryRowContext(ctx, `
+SELECT id, parent_id, name, owner_vault_id, gallery_visibility, state, created_at, updated_at
+FROM folders WHERE id = ?`, id)
+	folder, err := scanFolder(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Folder{}, ErrNotFound
+	}
+	return folder, err
+}
+
 func (r *FolderRepo) Move(ctx context.Context, id, parentID string) error {
 	result, err := r.db.ExecContext(
 		ctx,
@@ -117,6 +139,26 @@ func (r *FolderRepo) Move(ctx context.Context, id, parentID string) error {
 		formatTime(time.Now().UTC()),
 		id,
 	)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
+func (r *FolderRepo) Rename(ctx context.Context, id, name string) error {
+	result, err := r.db.ExecContext(ctx,
+		"UPDATE folders SET name = ?, updated_at = ? WHERE id = ?",
+		name, formatTime(time.Now().UTC()), id)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
+func (r *FolderRepo) UpdateState(ctx context.Context, id string, state FolderState) error {
+	result, err := r.db.ExecContext(ctx,
+		"UPDATE folders SET state = ?, updated_at = ? WHERE id = ?",
+		state, formatTime(time.Now().UTC()), id)
 	if err != nil {
 		return err
 	}

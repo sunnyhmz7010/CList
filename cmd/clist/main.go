@@ -14,6 +14,8 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/config"
 	"github.com/sunnyhmz7010/CList/internal/crypto"
 	"github.com/sunnyhmz7010/CList/internal/db"
+	"github.com/sunnyhmz7010/CList/internal/db/repository"
+	"github.com/sunnyhmz7010/CList/internal/files"
 )
 
 // frontend 包含由 Vite 构建的前端静态资源。
@@ -63,11 +65,19 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	mux := http.NewServeMux()
 	authenticator := auth.NewAuthenticator(database)
-	api.NewAuthHandlers(auth.NewAdminService(database), authenticator).Register(mux)
-	mux.Handle("/", handler)
-	return http.ListenAndServe(cfg.ListenAddr, mux)
+	fileRepo := repository.NewFileRepo(database)
+	folderRepo := repository.NewFolderRepo(database)
+	fileService := files.NewFileService(fileRepo, folderRepo)
+	folderService := files.NewFolderService(folderRepo)
+	router := api.NewRouter(api.RouterDeps{
+		Auth:          api.NewAuthHandlers(auth.NewAdminService(database), authenticator),
+		Authenticator: authenticator,
+		Files:         api.NewFileHandlers(fileService),
+		Folders:       api.NewFolderHandlers(folderService),
+		Frontend:      handler,
+	})
+	return http.ListenAndServe(cfg.ListenAddr, router)
 }
 
 func prepareDataDirs(dataDir string) error {

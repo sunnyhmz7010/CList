@@ -10,7 +10,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/sunnyhmz7010/CList/internal/auth"
+	"github.com/sunnyhmz7010/CList/internal/db/repository"
+	"github.com/sunnyhmz7010/CList/internal/files"
 )
 
 type AuthHandlers struct {
@@ -47,6 +50,14 @@ func (h *AuthHandlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/admin/login", h.login)
 	mux.HandleFunc("POST /api/v1/admin/logout", h.logout)
 	mux.Handle("POST /api/v1/admin/password", h.authenticator.RequireAdmin(http.HandlerFunc(h.changePassword)))
+}
+
+func (h *AuthHandlers) Routes(router chi.Router) {
+	router.Get("/api/v1/admin/status", h.status)
+	router.Post("/api/v1/admin/initialize", h.initialize)
+	router.Post("/api/v1/admin/login", h.login)
+	router.Post("/api/v1/admin/logout", h.logout)
+	router.With(h.authenticator.RequireAdmin).Post("/api/v1/admin/password", h.changePassword)
 }
 
 func (h *AuthHandlers) status(w http.ResponseWriter, r *http.Request) {
@@ -178,6 +189,14 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message, response.Retriable = http.StatusTooManyRequests, "rate_limited", "尝试次数过多", true
 	case errors.Is(err, auth.ErrInvalidCredentials), errors.Is(err, errInvalidRequest):
 		status, response.Code, response.Message = http.StatusBadRequest, "invalid_request", "请求参数无效"
+	case errors.Is(err, files.ErrForbidden):
+		status, response.Code, response.Message = http.StatusForbidden, "forbidden", "没有操作权限"
+	case errors.Is(err, files.ErrGone):
+		status, response.Code, response.Message = http.StatusGone, "gone", "文件已删除"
+	case errors.Is(err, files.ErrInvalidInput), errors.Is(err, files.ErrFolderCycle):
+		status, response.Code, response.Message = http.StatusBadRequest, "invalid_request", "请求参数无效"
+	case errors.Is(err, repository.ErrNotFound):
+		status, response.Code, response.Message = http.StatusNotFound, "not_found", "资源不存在"
 	}
 	writeJSON(w, status, response)
 }

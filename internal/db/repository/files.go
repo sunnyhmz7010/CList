@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -45,9 +46,10 @@ type File struct {
 }
 
 type FileListOptions struct {
-	State  FileState
-	Cursor string
-	Limit  int
+	State        FileState
+	OwnerVaultID *string
+	Cursor       string
+	Limit        int
 }
 
 type FileRepo struct {
@@ -113,14 +115,24 @@ FROM files WHERE public_id = ?`, publicID)
 
 func (r *FileRepo) List(ctx context.Context, options FileListOptions) ([]File, error) {
 	limit := normalizeLimit(options.Limit)
-	rows, err := r.db.QueryContext(ctx, `
+	query := `
 SELECT public_id, folder_id, owner_vault_id, storage_profile_id, storage_key,
        file_name, mime_type, size, sha256, gallery_visibility, state,
        purged_at, last_error, created_at, updated_at
 FROM files
-WHERE (? = '' OR state = ?) AND (? = '' OR public_id > ?)
-ORDER BY public_id
-LIMIT ?`, options.State, options.State, options.Cursor, options.Cursor, limit)
+	WHERE (? = '' OR state = ?) AND (? = '' OR public_id > ?)`
+	arguments := []any{options.State, options.State, options.Cursor, options.Cursor}
+	if options.OwnerVaultID != nil {
+		if *options.OwnerVaultID == "" {
+			query += " AND owner_vault_id IS NULL"
+		} else {
+			query += " AND owner_vault_id = ?"
+			arguments = append(arguments, *options.OwnerVaultID)
+		}
+	}
+	query += " ORDER BY public_id LIMIT ?"
+	arguments = append(arguments, limit)
+	rows, err := r.db.QueryContext(ctx, strings.TrimSpace(query), arguments...)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +157,26 @@ func (r *FileRepo) UpdateState(ctx context.Context, publicID string, state FileS
 		formatTime(time.Now().UTC()),
 		publicID,
 	)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
+func (r *FileRepo) Rename(ctx context.Context, publicID, fileName string) error {
+	result, err := r.db.ExecContext(ctx,
+		"UPDATE files SET file_name = ?, updated_at = ? WHERE public_id = ?",
+		fileName, formatTime(time.Now().UTC()), publicID)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
+func (r *FileRepo) Move(ctx context.Context, publicID, folderID string) error {
+	result, err := r.db.ExecContext(ctx,
+		"UPDATE files SET folder_id = ?, updated_at = ? WHERE public_id = ?",
+		nullableString(folderID), formatTime(time.Now().UTC()), publicID)
 	if err != nil {
 		return err
 	}
@@ -234,8 +266,8 @@ func normalizeLimit(limit int) int {
 	if limit <= 0 {
 		return 50
 	}
-	if limit > 200 {
-		return 200
+	if limit > 201 {
+		return 201
 	}
 	return limit
 }
