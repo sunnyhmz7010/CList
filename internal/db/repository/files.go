@@ -50,6 +50,11 @@ type FileListOptions struct {
 	OwnerVaultID *string
 	Cursor       string
 	Limit        int
+	FolderID     string
+	Name         string
+	MIMEType     string
+	From         *time.Time
+	To           *time.Time
 }
 
 type FileRepo struct {
@@ -130,6 +135,26 @@ FROM files
 			arguments = append(arguments, *options.OwnerVaultID)
 		}
 	}
+	if options.FolderID != "" {
+		query += " AND folder_id = ?"
+		arguments = append(arguments, options.FolderID)
+	}
+	if options.Name != "" {
+		query += " AND file_name LIKE ?"
+		arguments = append(arguments, "%"+options.Name+"%")
+	}
+	if options.MIMEType != "" {
+		query += " AND mime_type LIKE ?"
+		arguments = append(arguments, options.MIMEType+"%")
+	}
+	if options.From != nil {
+		query += " AND created_at >= ?"
+		arguments = append(arguments, formatTime(*options.From))
+	}
+	if options.To != nil {
+		query += " AND created_at <= ?"
+		arguments = append(arguments, formatTime(*options.To))
+	}
 	query += " ORDER BY public_id LIMIT ?"
 	arguments = append(arguments, limit)
 	rows, err := r.db.QueryContext(ctx, strings.TrimSpace(query), arguments...)
@@ -157,6 +182,14 @@ func (r *FileRepo) UpdateState(ctx context.Context, publicID string, state FileS
 		formatTime(time.Now().UTC()),
 		publicID,
 	)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
+func (r *FileRepo) SetGalleryVisibility(ctx context.Context, publicID string, visibility Visibility) error {
+	result, err := r.db.ExecContext(ctx, "UPDATE files SET gallery_visibility=?,updated_at=? WHERE public_id=?", visibility, formatTime(time.Now().UTC()), publicID)
 	if err != nil {
 		return err
 	}

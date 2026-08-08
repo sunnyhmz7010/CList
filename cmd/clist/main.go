@@ -16,6 +16,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/db"
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
+	"github.com/sunnyhmz7010/CList/internal/gallery"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 	"github.com/sunnyhmz7010/CList/internal/storage/local"
 	"github.com/sunnyhmz7010/CList/internal/storage/streaming"
@@ -105,6 +106,8 @@ func run() error {
 	}
 	uploadService := uploads.NewService(database, filepath.Join(cfg.DataDir, "chunks"), registry, fileService)
 	guestService := auth.NewGuestService(database)
+	guestAuthenticator := auth.NewGuestAuthenticator(database, authenticator)
+	galleryService := gallery.NewService(database, fileRepo, folderRepo)
 	filePasswordService := auth.NewFilePasswordService(database)
 	vaultService := auth.NewVaultService(database)
 	webhookResolver := webhook.NewStorageResolver(profileService, func(baseURL, token string) webhook.Sender {
@@ -122,6 +125,8 @@ func run() error {
 		FileAccess:    api.NewFileAccessHandlers(filePasswordService, fileService),
 		Vaults:        api.NewVaultHandlers(vaultService),
 		Storage:       api.NewStorageHandlers(profileService),
+		Gallery:       api.NewGalleryHandlers(galleryService),
+		GalleryAuth:   guestAuthenticator,
 		Webhook:       webhookHandler,
 		Frontend:      handler,
 	})

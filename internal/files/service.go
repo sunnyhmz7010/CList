@@ -173,6 +173,20 @@ func (s *FileService) Move(ctx context.Context, publicID, folderID string, actor
 	return s.files.Move(ctx, publicID, folderID)
 }
 
+func (s *FileService) SetGalleryVisibility(ctx context.Context, publicID string, visibility repository.Visibility, actor auth.Actor) error {
+	if !validVisibility(visibility) {
+		return ErrInvalidInput
+	}
+	file, err := s.files.Get(ctx, publicID)
+	if err != nil {
+		return err
+	}
+	if err := canManageFile(actor, file); err != nil {
+		return err
+	}
+	return s.files.SetGalleryVisibility(ctx, publicID, visibility)
+}
+
 func (s *FileService) Delete(ctx context.Context, publicID string, actor auth.Actor) error {
 	file, err := s.files.Get(ctx, publicID)
 	if err != nil {
@@ -280,6 +294,20 @@ func (s *FolderService) Rename(ctx context.Context, id, name string, actor auth.
 	return s.folders.Rename(ctx, id, name)
 }
 
+func (s *FolderService) SetGalleryVisibility(ctx context.Context, id string, visibility repository.Visibility, actor auth.Actor) error {
+	if !validVisibility(visibility) {
+		return ErrInvalidInput
+	}
+	folder, err := s.folders.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if err := canManageFolder(actor, folder); err != nil {
+		return err
+	}
+	return s.folders.SetGalleryVisibility(ctx, id, visibility)
+}
+
 func (s *FolderService) Delete(ctx context.Context, id string, actor auth.Actor) error {
 	folder, err := s.folders.Get(ctx, id)
 	if err != nil {
@@ -319,6 +347,10 @@ func hasScope(actor auth.Actor, scope string) bool {
 func validName(name string) bool {
 	name = strings.TrimSpace(name)
 	return name != "" && name != "." && name != ".." && len(name) <= 255 && !strings.ContainsAny(name, `/\\`)
+}
+
+func validVisibility(visibility repository.Visibility) bool {
+	return visibility == repository.VisibilityInherit || visibility == repository.VisibilityVisible || visibility == repository.VisibilityHidden
 }
 
 func newPublicID() (string, error) {

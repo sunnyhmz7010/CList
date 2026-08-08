@@ -165,6 +165,34 @@ func (r *FolderRepo) UpdateState(ctx context.Context, id string, state FolderSta
 	return requireAffected(result)
 }
 
+func (r *FolderRepo) SetGalleryVisibility(ctx context.Context, id string, visibility Visibility) error {
+	result, err := r.db.ExecContext(ctx, "UPDATE folders SET gallery_visibility=?,updated_at=? WHERE id=?", visibility, formatTime(time.Now().UTC()), id)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
+func (r *FolderRepo) EffectiveVisibility(ctx context.Context, id string) (bool, error) {
+	for depth := 0; id != "" && depth < 1024; depth++ {
+		folder, err := r.Get(ctx, id)
+		if err != nil {
+			return false, err
+		}
+		switch folder.GalleryVisibility {
+		case VisibilityVisible:
+			return true, nil
+		case VisibilityHidden:
+			return false, nil
+		}
+		id = folder.ParentID
+	}
+	if id != "" {
+		return false, errors.New("folder visibility cycle")
+	}
+	return true, nil
+}
+
 func scanFolder(scanner rowScanner) (Folder, error) {
 	var folder Folder
 	var parentID, ownerVaultID sql.NullString

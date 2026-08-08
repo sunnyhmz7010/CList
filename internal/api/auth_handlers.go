@@ -14,6 +14,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/auth"
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
+	"github.com/sunnyhmz7010/CList/internal/gallery"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 	"github.com/sunnyhmz7010/CList/internal/uploads"
 )
@@ -215,6 +216,8 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message = http.StatusUnauthorized, "scope_required", "需要独立访问密码"
 	case errors.Is(err, storage.ErrInvalidProfile):
 		status, response.Code, response.Message = http.StatusBadRequest, "invalid_storage_profile", "存储档案配置无效"
+	case errors.Is(err, gallery.ErrDisabled):
+		status, response.Code, response.Message = http.StatusNotFound, "gallery_disabled", "相册未启用"
 	}
 	writeJSON(w, status, response)
 }

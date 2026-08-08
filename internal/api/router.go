@@ -18,6 +18,8 @@ type RouterDeps struct {
 	FileAccess    *FileAccessHandlers
 	Vaults        *VaultHandlers
 	Storage       *StorageHandlers
+	Gallery       *GalleryHandlers
+	GalleryAuth   *auth.GuestAuthenticator
 	Webhook       http.Handler
 	Frontend      http.Handler
 }
@@ -29,6 +31,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 	router.Post("/api/v1/files/{id}/access", deps.FileAccess.Verify)
 	router.Post("/api/v1/vault", deps.Vaults.Create)
 	router.Post("/api/v1/vault/recover", deps.Vaults.Recover)
+	if deps.Gallery != nil && deps.GalleryAuth != nil {
+		router.With(deps.GalleryAuth.RequireScope(auth.ScopeGallery)).Get("/api/v1/gallery", deps.Gallery.List)
+	}
 	if deps.Webhook != nil {
 		router.Post("/webhooks/telegram/{profileSecret}", deps.Webhook.ServeHTTP)
 	}

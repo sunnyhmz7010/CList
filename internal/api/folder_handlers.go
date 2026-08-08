@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sunnyhmz7010/CList/internal/auth"
+	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
 )
 
@@ -18,8 +19,9 @@ type createFolderRequest struct {
 }
 
 type patchFolderRequest struct {
-	ParentID *string `json:"parent_id"`
-	Name     *string `json:"name"`
+	ParentID          *string                `json:"parent_id"`
+	Name              *string                `json:"name"`
+	GalleryVisibility *repository.Visibility `json:"gallery_visibility"`
 }
 
 func NewFolderHandlers(service *files.FolderService) *FolderHandlers {
@@ -72,6 +74,12 @@ func (h *FolderHandlers) Patch(w http.ResponseWriter, r *http.Request) {
 	}
 	if request.ParentID != nil {
 		if err := h.service.Move(r.Context(), id, *request.ParentID, actor); err != nil {
+			writeAPIError(w, r, err)
+			return
+		}
+	}
+	if request.GalleryVisibility != nil {
+		if err := h.service.SetGalleryVisibility(r.Context(), id, *request.GalleryVisibility, actor); err != nil {
 			writeAPIError(w, r, err)
 			return
 		}
