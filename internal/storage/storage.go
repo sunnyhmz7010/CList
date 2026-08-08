@@ -21,9 +21,9 @@ type ByteRange struct {
 }
 
 type Capabilities struct {
-	Range     bool
-	Head      bool
-	Streaming bool
+	Range     bool `json:"range"`
+	Head      bool `json:"head"`
+	Streaming bool `json:"streaming"`
 }
 
 type ObjectMeta struct {

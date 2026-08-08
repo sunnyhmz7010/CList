@@ -11,6 +11,21 @@ export class APIError extends Error {
   }
 }
 
+export interface StorageCapabilities {
+  range: boolean
+  head: boolean
+  streaming: boolean
+}
+
+export interface StorageProfile {
+  id: string
+  type: 'local' | 'telegram_official' | 'telegram_streaming'
+  name: string
+  capabilities: StorageCapabilities
+  enabled: boolean
+  isDefault: boolean
+}
+
 export async function apiClient<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')

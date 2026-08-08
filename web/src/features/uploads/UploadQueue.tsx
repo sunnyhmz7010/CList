@@ -2,12 +2,14 @@ import {useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {apiClient} from '../../api/client'
+import type {StorageCapabilities} from '../../api/client'
+import {CapabilityBadge} from '../../components/CapabilityBadge'
 import {recoveryStorageKey} from '../auth/GuestRecovery'
 
 const chunkSize = 8 * 1024 * 1024
 interface UploadState { id: string; missing_chunks: number[] }
 
-export function UploadQueue() {
+export function UploadQueue({capabilities}: {capabilities?: StorageCapabilities}) {
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
   const queryClient = useQueryClient()
@@ -43,6 +45,7 @@ export function UploadQueue() {
   }
 
   return <section><h2>上传</h2>
+    {capabilities && <CapabilityBadge capabilities={capabilities} />}
     <input type="file" multiple onChange={event => { for (const file of Array.from(event.target.files ?? [])) void upload(file) }} />
     <progress max="100" value={progress} aria-valuenow={progress} /><p aria-live="polite">{message}</p>
   </section>

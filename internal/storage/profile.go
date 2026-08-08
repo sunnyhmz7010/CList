@@ -23,9 +23,12 @@ type ProfileInput struct {
 	Enabled    bool
 }
 type Profile struct {
-	ID, Type, Name     string
-	Enabled, IsDefault bool
-	Capabilities       Capabilities
+	ID           string       `json:"id"`
+	Type         string       `json:"type"`
+	Name         string       `json:"name"`
+	Enabled      bool         `json:"enabled"`
+	IsDefault    bool         `json:"isDefault"`
+	Capabilities Capabilities `json:"capabilities"`
 }
 type ProfileService struct {
 	db       *sql.DB
