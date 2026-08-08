@@ -21,4 +21,7 @@ button, input { font: inherit; }
 .preview-media, .preview-frame { display: block; width: 100%; max-height: 75vh; object-fit: contain; }
 .preview-frame { min-height: 70vh; border: 0; }
 .preview-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.trash-page, .migration-dialog { padding: 1.5rem; }
+.trash-batch { margin: 1rem 0; padding: 1rem; background: #fff; border: 1px solid #dce3ec; }
+.trash-batch button { margin-right: .5rem; }
 @media (max-width: 720px) { .workspace { grid-template-columns: 1fr; padding: 1rem; } .file-list li { grid-template-columns: 1fr auto; } .file-list progress { grid-column: 1 / -1; width: 100%; } }

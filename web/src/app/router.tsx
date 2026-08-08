@@ -8,6 +8,7 @@ import {AccessSettings} from '../features/settings/AccessSettings'
 import {StorageProfiles} from '../features/settings/StorageProfiles'
 import {Gallery} from '../features/gallery/Gallery'
 import {GuestGate} from '../features/auth/GuestGate'
+import {TrashPage} from '../features/trash/TrashPage'
 
 function HomePage() { return <main className="workspace"><FolderTree /><div><UploadQueue /><FileList /></div></main> }
 function SetupPage() { return <main><h2>初始化管理员</h2><p>请设置管理员账号和密码。</p></main> }
@@ -20,5 +21,6 @@ export function createAppRouter() {
     {path: '/admin', element: <AdminPage />},
     {path: '/recover', element: <GuestRecovery />},
     {path: '/gallery', element: <GuestGate scope="gallery"><Gallery /></GuestGate>},
+    {path: '/trash', element: <TrashPage />},
   ])
 }
