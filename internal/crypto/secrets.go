@@ -1,6 +1,8 @@
 package crypto
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"errors"
 	"io"
@@ -13,6 +15,37 @@ var ErrInvalidMasterKey = errors.New("invalid master key")
 type masterKeyAPI struct{}
 
 var MasterKey masterKeyAPI
+
+func EncryptConfig(key, value []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+	return gcm.Seal(nonce, nonce, value, nil), nil
+}
+
+func DecryptConfig(key, value []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	if len(value) < gcm.NonceSize() {
+		return nil, ErrInvalidMasterKey
+	}
+	return gcm.Open(nil, value[:gcm.NonceSize()], value[gcm.NonceSize():], nil)
+}
 
 func (masterKeyAPI) LoadOrCreate(path string) ([]byte, error) {
 	key, err := os.ReadFile(path)

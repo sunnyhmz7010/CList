@@ -17,6 +17,7 @@ type RouterDeps struct {
 	Guests        *GuestHandlers
 	FileAccess    *FileAccessHandlers
 	Vaults        *VaultHandlers
+	Storage       *StorageHandlers
 	Frontend      http.Handler
 }
 
@@ -53,6 +54,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 		api.Group(func(admin chi.Router) {
 			admin.Use(deps.Authenticator.RequireAdmin)
 			admin.Put("/admin/access/{scope}", deps.Guests.SetPassword)
+			admin.Get("/storage-profiles", deps.Storage.List)
+			admin.Post("/storage-profiles", deps.Storage.Create)
+			admin.Post("/storage-profiles/{id}/default", deps.Storage.SetDefault)
 		})
 	})
 	if deps.Frontend != nil {

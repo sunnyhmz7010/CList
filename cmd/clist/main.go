@@ -52,7 +52,8 @@ func run() error {
 	if err := prepareDataDirs(cfg.DataDir); err != nil {
 		return err
 	}
-	if _, err := crypto.MasterKey.LoadOrCreate(filepath.Join(cfg.DataDir, "secrets", "master.key")); err != nil {
+	masterKey, err := crypto.MasterKey.LoadOrCreate(filepath.Join(cfg.DataDir, "secrets", "master.key"))
+	if err != nil {
 		return err
 	}
 	database, err := db.Open(context.Background(), filepath.Join(cfg.DataDir, "clist.db"))
@@ -75,6 +76,7 @@ func run() error {
 	folderService := files.NewFolderService(folderRepo)
 	registry := storage.NewRegistry()
 	registry.Register("local-default", local.New(filepath.Join(cfg.DataDir, "files")))
+	profileService := storage.NewProfileService(database, masterKey, registry)
 	uploadService := uploads.NewService(database, filepath.Join(cfg.DataDir, "chunks"), registry, fileService)
 	guestService := auth.NewGuestService(database)
 	filePasswordService := auth.NewFilePasswordService(database)
@@ -89,6 +91,7 @@ func run() error {
 		Guests:        api.NewGuestHandlers(guestService),
 		FileAccess:    api.NewFileAccessHandlers(filePasswordService, fileService),
 		Vaults:        api.NewVaultHandlers(vaultService),
+		Storage:       api.NewStorageHandlers(profileService),
 		Frontend:      handler,
 	})
 	return http.ListenAndServe(cfg.ListenAddr, router)

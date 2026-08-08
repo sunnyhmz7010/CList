@@ -213,6 +213,8 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message = http.StatusMethodNotAllowed, "range_unsupported", "当前存储不支持此请求"
 	case errors.Is(err, auth.ErrScopeRequired):
 		status, response.Code, response.Message = http.StatusUnauthorized, "scope_required", "需要独立访问密码"
+	case errors.Is(err, storage.ErrInvalidProfile):
+		status, response.Code, response.Message = http.StatusBadRequest, "invalid_storage_profile", "存储档案配置无效"
 	}
 	writeJSON(w, status, response)
 }
