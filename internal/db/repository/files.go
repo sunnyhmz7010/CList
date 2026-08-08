@@ -216,6 +216,22 @@ func (r *FileRepo) Move(ctx context.Context, publicID, folderID string) error {
 	return requireAffected(result)
 }
 
+func (r *FileRepo) SwitchStorage(ctx context.Context, publicID, profileID, key string) error {
+	result, err := r.db.ExecContext(ctx, "UPDATE files SET storage_profile_id=?,storage_key=?,last_error=NULL,updated_at=? WHERE public_id=? AND state='active'", profileID, key, formatTime(time.Now().UTC()), publicID)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
+func (r *FileRepo) RecordError(ctx context.Context, publicID string, operationErr error) error {
+	result, err := r.db.ExecContext(ctx, "UPDATE files SET last_error=?,updated_at=? WHERE public_id=?", operationErr.Error(), formatTime(time.Now().UTC()), publicID)
+	if err != nil {
+		return err
+	}
+	return requireAffected(result)
+}
+
 type rowScanner interface {
 	Scan(dest ...any) error
 }

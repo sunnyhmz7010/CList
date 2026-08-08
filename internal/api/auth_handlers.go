@@ -15,6 +15,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
 	"github.com/sunnyhmz7010/CList/internal/gallery"
+	"github.com/sunnyhmz7010/CList/internal/migration"
 	"github.com/sunnyhmz7010/CList/internal/preview"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 	"github.com/sunnyhmz7010/CList/internal/trash"
@@ -224,6 +225,10 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message = http.StatusUnprocessableEntity, "preview_unsafe", "文件不符合安全预览限制"
 	case errors.Is(err, trash.ErrRestoreConflict):
 		status, response.Code, response.Message = http.StatusConflict, "restore_conflict", "原位置存在同名项目"
+	case errors.Is(err, migration.ErrConflict):
+		status, response.Code, response.Message = http.StatusConflict, "migration_conflict", "迁移请求已存在"
+	case errors.Is(err, migration.ErrHashMismatch):
+		status, response.Code, response.Message = http.StatusUnprocessableEntity, "migration_hash_mismatch", "迁移目标校验失败"
 	}
 	writeJSON(w, status, response)
 }

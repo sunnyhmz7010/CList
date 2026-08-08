@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/sunnyhmz7010/CList/internal/api"
 	"github.com/sunnyhmz7010/CList/internal/auth"
@@ -17,6 +18,7 @@ import (
 	"github.com/sunnyhmz7010/CList/internal/db/repository"
 	"github.com/sunnyhmz7010/CList/internal/files"
 	"github.com/sunnyhmz7010/CList/internal/gallery"
+	"github.com/sunnyhmz7010/CList/internal/migration"
 	"github.com/sunnyhmz7010/CList/internal/preview"
 	"github.com/sunnyhmz7010/CList/internal/storage"
 	"github.com/sunnyhmz7010/CList/internal/storage/local"
@@ -113,6 +115,17 @@ func run() error {
 	previewService := preview.NewService(fileService, registry)
 	trashService := trash.NewService(database)
 	purgeService := trash.NewPurgeService(database, registry)
+	migrationService := migration.NewService(database, filepath.Join(cfg.DataDir, "migrations"), registry, fileService, fileRepo)
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for {
+			if err := migrationService.RunPending(context.Background()); err != nil {
+				log.Printf("迁移任务轮询失败: %v", err)
+			}
+			<-ticker.C
+		}
+	}()
 	filePasswordService := auth.NewFilePasswordService(database)
 	vaultService := auth.NewVaultService(database)
 	webhookResolver := webhook.NewStorageResolver(profileService, func(baseURL, token string) webhook.Sender {
@@ -134,6 +147,7 @@ func run() error {
 		GalleryAuth:   guestAuthenticator,
 		Preview:       api.NewPreviewHandlers(previewService, filePasswordService, authenticator),
 		Trash:         api.NewTrashHandlers(trashService, purgeService),
+		Migrations:    api.NewMigrationHandlers(migrationService),
 		Webhook:       webhookHandler,
 		Frontend:      handler,
 	})

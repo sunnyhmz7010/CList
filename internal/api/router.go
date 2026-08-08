@@ -22,6 +22,7 @@ type RouterDeps struct {
 	GalleryAuth   *auth.GuestAuthenticator
 	Preview       *PreviewHandlers
 	Trash         *TrashHandlers
+	Migrations    *MigrationHandlers
 	Webhook       http.Handler
 	Frontend      http.Handler
 }
@@ -76,6 +77,10 @@ func NewRouter(deps RouterDeps) http.Handler {
 			protected.Delete("/files/{id}/password", deps.FileAccess.Clear)
 			protected.Post("/vault/revoke", deps.Vaults.Revoke)
 			protected.Get("/vault/files", deps.Files.List)
+			if deps.Migrations != nil {
+				protected.Post("/migrations", deps.Migrations.Start)
+				protected.Get("/jobs/{id}", deps.Migrations.GetJob)
+			}
 		})
 		api.Group(func(admin chi.Router) {
 			admin.Use(deps.Authenticator.RequireAdmin)
