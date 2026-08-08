@@ -211,6 +211,8 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, err error) {
 		status, response.Code, response.Message = http.StatusNotFound, "storage_not_found", "存储对象不存在"
 	case errors.Is(err, storage.ErrRangeUnsupported):
 		status, response.Code, response.Message = http.StatusMethodNotAllowed, "range_unsupported", "当前存储不支持此请求"
+	case errors.Is(err, auth.ErrScopeRequired):
+		status, response.Code, response.Message = http.StatusUnauthorized, "scope_required", "需要独立访问密码"
 	}
 	writeJSON(w, status, response)
 }

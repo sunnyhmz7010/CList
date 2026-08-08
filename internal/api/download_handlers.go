@@ -15,15 +15,21 @@ import (
 )
 
 type DownloadHandlers struct {
-	files    *files.FileService
-	registry *storage.Registry
+	files     *files.FileService
+	registry  *storage.Registry
+	passwords *auth.FilePasswordService
+	admin     *auth.Authenticator
 }
 
-func NewDownloadHandlers(fileService *files.FileService, registry *storage.Registry) *DownloadHandlers {
-	return &DownloadHandlers{files: fileService, registry: registry}
+func NewDownloadHandlers(fileService *files.FileService, registry *storage.Registry, passwords *auth.FilePasswordService, admin *auth.Authenticator) *DownloadHandlers {
+	return &DownloadHandlers{files: fileService, registry: registry, passwords: passwords, admin: admin}
 }
 
 func (h *DownloadHandlers) Serve(w http.ResponseWriter, r *http.Request) {
+	if err := h.passwords.AuthorizeRequest(r, chi.URLParam(r, "publicID"), h.admin); err != nil {
+		writeAPIError(w, r, err)
+		return
+	}
 	file, err := h.files.Get(r.Context(), chi.URLParam(r, "publicID"), auth.Actor{Kind: auth.ActorPublic})
 	if err != nil {
 		writeAPIError(w, r, err)

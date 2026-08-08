@@ -14,12 +14,16 @@ type RouterDeps struct {
 	Folders       *FolderHandlers
 	Uploads       *UploadHandlers
 	Downloads     *DownloadHandlers
+	Guests        *GuestHandlers
+	FileAccess    *FileAccessHandlers
 	Frontend      http.Handler
 }
 
 func NewRouter(deps RouterDeps) http.Handler {
 	router := chi.NewRouter()
 	deps.Auth.Routes(router)
+	router.Post("/api/v1/guest/{scope}/session", deps.Guests.Login)
+	router.Post("/api/v1/files/{id}/access", deps.FileAccess.Verify)
 	router.Get("/f/{publicID}/{filename}", deps.Downloads.Serve)
 	router.Head("/f/{publicID}/{filename}", deps.Downloads.Serve)
 	router.Route("/api/v1", func(api chi.Router) {
@@ -38,6 +42,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 			protected.Get("/uploads/{id}", deps.Uploads.Get)
 			protected.Post("/uploads/{id}/complete", deps.Uploads.Complete)
 			protected.Delete("/uploads/{id}", deps.Uploads.Abort)
+			protected.Put("/admin/access/{scope}", deps.Guests.SetPassword)
+			protected.Put("/files/{id}/password", deps.FileAccess.Set)
+			protected.Delete("/files/{id}/password", deps.FileAccess.Clear)
 		})
 	})
 	if deps.Frontend != nil {

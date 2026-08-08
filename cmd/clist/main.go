@@ -76,13 +76,17 @@ func run() error {
 	registry := storage.NewRegistry()
 	registry.Register("local-default", local.New(filepath.Join(cfg.DataDir, "files")))
 	uploadService := uploads.NewService(database, filepath.Join(cfg.DataDir, "chunks"), registry, fileService)
+	guestService := auth.NewGuestService(database)
+	filePasswordService := auth.NewFilePasswordService(database)
 	router := api.NewRouter(api.RouterDeps{
 		Auth:          api.NewAuthHandlers(auth.NewAdminService(database), authenticator),
 		Authenticator: authenticator,
 		Files:         api.NewFileHandlers(fileService),
 		Folders:       api.NewFolderHandlers(folderService),
 		Uploads:       api.NewUploadHandlers(uploadService),
-		Downloads:     api.NewDownloadHandlers(fileService, registry),
+		Downloads:     api.NewDownloadHandlers(fileService, registry, filePasswordService, authenticator),
+		Guests:        api.NewGuestHandlers(guestService),
+		FileAccess:    api.NewFileAccessHandlers(filePasswordService),
 		Frontend:      handler,
 	})
 	return http.ListenAndServe(cfg.ListenAddr, router)
