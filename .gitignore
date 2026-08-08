@@ -1,0 +1,5 @@
+.worktrees/
+web/node_modules/
+web/dist/
+cmd/clist/web-dist/*
+!cmd/clist/web-dist/.gitkeep
